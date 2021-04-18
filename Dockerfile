@@ -1,7 +1,7 @@
 FROM python:3.7-alpine
 LABEL MAINTAINER="Kevin Arriaga"
 
-ENV PYTHONUNBUFERED 1
+ENV PYTHONUNBUFFERED=1
 
 COPY ./requirements.txt /requirements.txt
 RUN apk add --update --no-cache postgresql-client
