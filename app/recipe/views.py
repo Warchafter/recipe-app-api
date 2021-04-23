@@ -15,10 +15,6 @@ class BaseRecipeAttrViewSet(viewsets.GenericViewSet,
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def get_queryset(self):
-        """Return objects for the current authenticated user only"""
-        return self.queryset.filter(user=self.request.user).order_by('-name')
-
     def perform_create(self, serializer):
         """Create a new object"""
         serializer.save(user=self.request.user)
@@ -43,9 +39,33 @@ class RecipeViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
+    def _params_to_ints(self, qs):  # qs short for querystring
+        """Convert a list of string IDs to a list of integers"""
+        # The return function below does the following steps:
+        # our_string = '1,2,3'
+        # our_string_list = ['1', '2', '3']
+        # out_integer_list = [1,2,3]
+        return [int(str_id) for str_id in qs.split(',')]
+
     def get_queryset(self):
         """Retrieve the recipes for the authenticated user"""
-        return self.queryset.filter(user=self.request.user)
+        tags = self.request.query_params.get('tags')
+        ingredients = self.request.query_params.get('ingredients')
+        queryset = self.queryset
+        if tags:
+            tag_ids = self._params_to_ints(tags)
+            print(tag_ids)
+            queryset = queryset.filter(tags__id__in=tag_ids)
+            # tags__id__in is the Django syntax for filtering on foreign keys objects
+            # We have the 'tags' field in our queryset and that has a foreign key to the
+            # tags table which has an id. If you want to filter by that id, the you have
+            # to do the __id and then you do another __ to apply a function called 'in'
+            # to return all of the tags where the 'id' is in the provided list.
+        if ingredients:
+            ingredient_ids = self._params_to_ints(ingredients)
+            queryset = queryset.filter(ingredients__id__in=ingredient_ids)
+
+        return queryset.filter(user=self.request.user).order_by('-name')
 
     def get_serializer_class(self):
         """Return appropriate serialzier class"""
